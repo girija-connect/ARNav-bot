@@ -1,0 +1,21 @@
+<?xml version="1.0"?>
+<package format="3">
+  <name>arnav_mission</name>
+  <version>0.1.0</version>
+  <description>Commands that move racks around the ARNAV warehouse: move_rack, run_tasks, goto, show_layout.</description>
+  <maintainer email="girija-connect13@gmail.com">ARNAV maintainer</maintainer>
+  <license>MIT</license>
+  <depend>rclpy</depend>
+  <depend>geometry_msgs</depend>
+  <depend>action_msgs</depend>
+  <depend>rcl_interfaces</depend>
+  <depend>tf2_ros</depend>
+  <depend>nav2_simple_commander</depend>
+  <depend>arnav_interfaces</depend>
+  <depend>arnav_sim</depend>
+  <depend>arnav_mapping</depend>
+  <exec_depend>python3-numpy</exec_depend>
+  <exec_depend>python3-yaml</exec_depend>
+  <test_depend>python3-pytest</test_depend>
+  <export><build_type>ament_python</build_type></export>
+</package>

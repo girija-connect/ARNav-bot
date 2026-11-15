@@ -1,0 +1,18 @@
+# Drive under a rack found with the LiDAR, centre on it and lift it.
+# rack_pose: where the rack is expected, in the map frame. Its yaw is the direction the robot
+#            will drive INTO the rack (the robot should already face roughly that way).
+geometry_msgs/PoseStamped rack_pose
+# Only detections within this radius of rack_pose are accepted. 0 = use the server default (0.6 m).
+float32 gate_radius
+# RFID tag expected under the rack once the robot is centred on it. Empty = do not check.
+string expected_tag
+---
+bool success
+string message
+float32 final_lateral_error   # m, rack centre vs robot centre across the entry axis
+float32 final_heading_error   # rad
+---
+string state                  # SEARCHING, APPROACHING, BACKING_OFF, CHECKING_RFID, LIFTING
+float32 distance_to_go        # m along the entry axis
+float32 lateral_error         # m
+float32 heading_error         # rad

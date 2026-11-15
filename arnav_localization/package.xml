@@ -1,0 +1,12 @@
+<?xml version="1.0"?>
+<package format="3">
+  <name>arnav_localization</name>
+  <version>0.1.0</version>
+  <description>ARNAV localization: Nav2 map server and AMCL on the warehouse map.</description>
+  <maintainer email="girija-connect13@gmail.com">ARNAV maintainer</maintainer>
+  <license>MIT</license>
+  <buildtool_depend>ament_cmake</buildtool_depend>
+  <exec_depend>nav2_bringup</exec_depend>
+  <exec_depend>arnav_mapping</exec_depend>
+  <export><build_type>ament_cmake</build_type></export>
+</package>

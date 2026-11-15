@@ -1,0 +1,9 @@
+# Moves for:  ros2 run arnav_mission run_tasks
+# Each task takes the rack standing in `from` and puts it in `to` (a centre slot 01..10 or a work station w1..w6).
+# The 10 centre slots hold racks; the work stations w1-w3 (left) and w4-w6 (right) are empty.
+tasks:
+  - {from: slot_01, to: w1}
+  - {from: slot_02, to: w4}
+  - {from: slot_03, to: w2}
+  - {from: slot_04, to: w5}
+  - {from: w1, to: slot_01}

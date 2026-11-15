@@ -1,0 +1,198 @@
+<?xml version="1.0"?>
+<!--
+  ARNAV: low-profile rack-lifting AMR (drives under a shelf cart, jacks it up, carries it).
+
+  Frames: base_footprint (floor) -> base_link (body centre, 0.10 m up) -> wheels, casters, jack_link,
+          scan_link (scan frame), lidar_front_link, camera_link, imu_link.
+
+  Body 0.72 x 0.56 x 0.14 m. Rectangular lift plate rests 0.19 m above the floor and rises 0.08 m.
+-->
+<robot name="arnav" xmlns:xacro="http://www.ros.org/wiki/xacro">
+  <xacro:arg name="camera" default="true"/>
+  <xacro:arg name="world_name" default="arnav_warehouse"/>
+
+  <xacro:property name="L" value="0.72"/>
+  <xacro:property name="W" value="0.56"/>
+  <xacro:property name="H" value="0.14"/>
+  <xacro:property name="wheel_r" value="0.075"/>
+  <xacro:property name="wheel_w" value="0.05"/>
+  <xacro:property name="wheel_y" value="0.25"/>
+  <xacro:property name="caster_r" value="0.03"/>
+  <xacro:property name="caster_x" value="0.30"/>
+  <xacro:property name="bl_z" value="0.10"/>          <!-- base_link height above the floor -->
+  <xacro:property name="lidar_z" value="0.01"/>       <!-- lidar plane = 0.11 m above floor -->
+  <xacro:property name="jack_max" value="0.08"/>
+
+  <xacro:macro name="box_inertia" params="m x y z">
+    <inertia ixx="${m*(y*y+z*z)/12}" ixy="0" ixz="0" iyy="${m*(x*x+z*z)/12}" iyz="0" izz="${m*(x*x+y*y)/12}"/>
+  </xacro:macro>
+
+  <material name="arnav_white"><color rgba="0.92 0.93 0.95 1"/></material>
+  <material name="arnav_dark"><color rgba="0.12 0.12 0.14 1"/></material>
+  <material name="arnav_blue"><color rgba="0.10 0.35 0.75 1"/></material>
+  <material name="arnav_rubber"><color rgba="0.05 0.05 0.05 1"/></material>
+
+  <link name="base_footprint"/>
+  <joint name="base_joint" type="fixed">
+    <parent link="base_footprint"/><child link="base_link"/>
+    <origin xyz="0 0 ${bl_z}" rpy="0 0 0"/>
+  </joint>
+
+  <link name="base_link">
+    <inertial>
+      <origin xyz="0 0 -0.01" rpy="0 0 0"/><mass value="28.0"/>
+      <xacro:box_inertia m="28.0" x="${L}" y="${W}" z="${H}"/>
+    </inertial>
+    <collision><origin xyz="0 0 0"/><geometry><box size="${L} ${W} ${H}"/></geometry></collision>
+
+    <!-- visual shell: centre block plus side skirts with a wheel opening -->
+    <visual><origin xyz="0 0 0"/><geometry><box size="${L} ${W-0.1} ${H}"/></geometry><material name="arnav_white"/></visual>
+    <visual><origin xyz="0.225 ${W/2-0.025} 0"/><geometry><box size="0.27 0.05 ${H}"/></geometry><material name="arnav_white"/></visual>
+    <visual><origin xyz="0.225 ${-(W/2-0.025)} 0"/><geometry><box size="0.27 0.05 ${H}"/></geometry><material name="arnav_white"/></visual>
+    <visual><origin xyz="-0.225 ${W/2-0.025} 0"/><geometry><box size="0.27 0.05 ${H}"/></geometry><material name="arnav_white"/></visual>
+    <visual><origin xyz="-0.225 ${-(W/2-0.025)} 0"/><geometry><box size="0.27 0.05 ${H}"/></geometry><material name="arnav_white"/></visual>
+    <visual><origin xyz="0 0 ${-H/2+0.01}"/><geometry><box size="${L+0.005} ${W+0.005} 0.02"/></geometry><material name="arnav_blue"/></visual>
+  </link>
+
+  <!-- drive wheels (inside the body outline) -->
+  <xacro:macro name="wheel" params="side y">
+    <link name="${side}_wheel">
+      <inertial><mass value="1.5"/><inertia ixx="0.0035" ixy="0" ixz="0" iyy="0.0035" iyz="0" izz="0.0042"/></inertial>
+      <collision><origin xyz="0 0 0" rpy="${pi/2} 0 0"/><geometry><cylinder radius="${wheel_r}" length="${wheel_w}"/></geometry></collision>
+      <visual><origin xyz="0 0 0" rpy="${pi/2} 0 0"/><geometry><cylinder radius="${wheel_r}" length="${wheel_w}"/></geometry><material name="arnav_rubber"/></visual>
+    </link>
+    <joint name="${side}_wheel_joint" type="continuous">
+      <parent link="base_link"/><child link="${side}_wheel"/>
+      <origin xyz="0 ${y} ${wheel_r-bl_z}" rpy="0 0 0"/><axis xyz="0 1 0"/>
+      <dynamics damping="0.02" friction="0.0"/>
+    </joint>
+    <gazebo reference="${side}_wheel"><mu1>1.2</mu1><mu2>1.2</mu2><kp>1e6</kp><kd>100</kd></gazebo>
+  </xacro:macro>
+  <xacro:wheel side="left" y="${wheel_y}"/>
+  <xacro:wheel side="right" y="${-wheel_y}"/>
+
+  <!-- passive casters (frictionless spheres) -->
+  <xacro:macro name="caster" params="name x">
+    <link name="${name}">
+      <inertial><mass value="0.2"/><inertia ixx="0.0001" ixy="0" ixz="0" iyy="0.0001" iyz="0" izz="0.0001"/></inertial>
+      <collision><geometry><sphere radius="${caster_r}"/></geometry></collision>
+      <visual><geometry><sphere radius="${caster_r}"/></geometry><material name="arnav_dark"/></visual>
+    </link>
+    <joint name="${name}_joint" type="fixed">
+      <parent link="base_link"/><child link="${name}"/><origin xyz="${x} 0 ${caster_r-bl_z}"/>
+    </joint>
+    <gazebo reference="${name}"><mu1>0.0</mu1><mu2>0.0</mu2></gazebo>
+  </xacro:macro>
+  <xacro:caster name="caster_front" x="${caster_x}"/>
+  <xacro:caster name="caster_rear" x="${-caster_x}"/>
+
+  <!-- lift plate: rectangular, same outline as the body, sitting on the base. A visual-only column bridges
+       the small gap to the base so the plate looks joined to it; collision is a flat box for stable rack contact -->
+  <link name="jack_link">
+    <inertial><mass value="3.0"/><xacro:box_inertia m="3.0" x="0.68" y="0.52" z="0.02"/></inertial>
+    <collision><geometry><box size="0.68 0.52 0.02"/></geometry></collision>
+    <visual><geometry><box size="0.68 0.52 0.02"/></geometry><material name="arnav_blue"/></visual>
+    <visual><origin xyz="0 0 0.011"/><geometry><box size="0.62 0.46 0.004"/></geometry><material name="arnav_rubber"/></visual>
+    <visual><origin xyz="0 0 -0.015"/><geometry><box size="0.60 0.44 0.03"/></geometry><material name="arnav_white"/></visual>
+  </link>
+  <joint name="jack_joint" type="prismatic">
+    <parent link="base_link"/><child link="jack_link"/>
+    <origin xyz="0 0 ${0.19-bl_z}"/><axis xyz="0 0 1"/>
+    <limit lower="0.0" upper="${jack_max}" effort="3000" velocity="0.1"/>
+    <dynamics damping="50"/>
+  </joint>
+  <gazebo reference="jack_link"><mu1>2.0</mu1><mu2>2.0</mu2><kp>1e6</kp><kd>200</kd></gazebo>
+
+  <!-- merged-scan frame at the robot centre -->
+  <link name="scan_link"/>
+  <joint name="scan_joint" type="fixed"><parent link="base_link"/><child link="scan_link"/><origin xyz="0 0 ${lidar_z}"/></joint>
+
+  <!-- single front lidar: centred on the front edge, 180 degrees ahead of the robot -->
+  <xacro:macro name="lidar" params="name x y yaw topic">
+    <link name="${name}_link">
+      <inertial><mass value="0.2"/><inertia ixx="0.0001" ixy="0" ixz="0" iyy="0.0001" iyz="0" izz="0.0001"/></inertial>
+      <visual><geometry><cylinder radius="0.03" length="0.04"/></geometry><material name="arnav_dark"/></visual>
+    </link>
+    <joint name="${name}_joint" type="fixed">
+      <parent link="base_link"/><child link="${name}_link"/><origin xyz="${x} ${y} ${lidar_z}" rpy="0 0 ${yaw}"/>
+    </joint>
+    <gazebo reference="${name}_link">
+      <sensor name="${name}" type="gpu_lidar">
+        <always_on>true</always_on><update_rate>10</update_rate><visualize>false</visualize>
+        <topic>${topic}</topic>
+        <ignition_frame_id>${name}_link</ignition_frame_id>
+        <lidar>
+          <scan>
+            <horizontal><samples>360</samples><resolution>1</resolution><min_angle>-1.5708</min_angle><max_angle>1.5708</max_angle></horizontal>
+            <vertical><samples>1</samples><min_angle>0</min_angle><max_angle>0</max_angle></vertical>
+          </scan>
+          <range><min>0.10</min><max>12.0</max><resolution>0.01</resolution></range>
+          <noise><type>gaussian</type><mean>0.0</mean><stddev>0.01</stddev></noise>
+        </lidar>
+      </sensor>
+    </gazebo>
+  </xacro:macro>
+  <xacro:lidar name="lidar_front" x="0.37" y="0.0" yaw="0.0" topic="scan_front"/>
+
+  <!-- IMU -->
+  <link name="imu_link"><inertial><mass value="0.05"/><inertia ixx="1e-5" ixy="0" ixz="0" iyy="1e-5" iyz="0" izz="1e-5"/></inertial></link>
+  <joint name="imu_joint" type="fixed"><parent link="base_link"/><child link="imu_link"/><origin xyz="0 0 0.02"/></joint>
+  <gazebo reference="imu_link">
+    <sensor name="imu" type="imu">
+      <always_on>true</always_on><update_rate>50</update_rate><topic>imu/data</topic>
+      <ignition_frame_id>imu_link</ignition_frame_id>
+    </sensor>
+  </gazebo>
+
+  <xacro:if value="$(arg camera)">
+    <link name="camera_link">
+      <inertial><mass value="0.05"/><inertia ixx="1e-5" ixy="0" ixz="0" iyy="1e-5" iyz="0" izz="1e-5"/></inertial>
+      <visual><geometry><box size="0.02 0.06 0.03"/></geometry><material name="arnav_dark"/></visual>
+    </link>
+    <joint name="camera_joint" type="fixed"><parent link="base_link"/><child link="camera_link"/><origin xyz="0.36 0 0.05"/></joint>
+    <gazebo reference="camera_link">
+      <sensor name="front_camera" type="camera">
+        <always_on>true</always_on><update_rate>15</update_rate><topic>camera/front/image_raw</topic>
+        <ignition_frame_id>camera_link</ignition_frame_id>
+        <camera>
+          <horizontal_fov>1.4</horizontal_fov>
+          <image><width>640</width><height>480</height><format>R8G8B8</format></image>
+          <clip><near>0.05</near><far>20</far></clip>
+        </camera>
+      </sensor>
+    </gazebo>
+  </xacro:if>
+
+  <!-- Gazebo plugins -->
+  <gazebo>
+    <plugin filename="ignition-gazebo-diff-drive-system" name="ignition::gazebo::systems::DiffDrive">
+      <left_joint>left_wheel_joint</left_joint>
+      <right_joint>right_wheel_joint</right_joint>
+      <wheel_separation>${2*wheel_y}</wheel_separation>
+      <wheel_radius>${wheel_r}</wheel_radius>
+      <odom_publish_frequency>50</odom_publish_frequency>
+      <topic>cmd_vel</topic>
+      <odom_topic>odom</odom_topic>
+      <tf_topic>/model/arnav/tf</tf_topic>
+      <frame_id>odom</frame_id>
+      <child_frame_id>base_footprint</child_frame_id>
+      <max_linear_velocity>1.2</max_linear_velocity>
+      <min_linear_velocity>-1.2</min_linear_velocity>
+      <max_angular_velocity>2.0</max_angular_velocity>
+      <min_angular_velocity>-2.0</min_angular_velocity>
+      <max_linear_acceleration>1.5</max_linear_acceleration>
+      <min_linear_acceleration>-1.5</min_linear_acceleration>
+      <max_angular_acceleration>3.0</max_angular_acceleration>
+      <min_angular_acceleration>-3.0</min_angular_acceleration>
+    </plugin>
+    <plugin filename="ignition-gazebo-joint-state-publisher-system" name="ignition::gazebo::systems::JointStatePublisher"/>
+    <plugin filename="ignition-gazebo-joint-position-controller-system" name="ignition::gazebo::systems::JointPositionController">
+      <joint_name>jack_joint</joint_name>
+      <topic>/arnav/jack/cmd_pos</topic>
+      <use_actuator_msg>false</use_actuator_msg>
+      <p_gain>20000</p_gain><i_gain>1000</i_gain><d_gain>1000</d_gain>
+      <i_max>400</i_max><i_min>-400</i_min>
+      <cmd_max>1500</cmd_max><cmd_min>-1500</cmd_min>
+    </plugin>
+  </gazebo>
+</robot>

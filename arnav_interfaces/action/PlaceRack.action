@@ -1,0 +1,14 @@
+# Carry the lifted rack to a slot, put it down and (optionally) drive out from under it.
+# slot_pose: slot centre in the map frame. Its yaw is the direction the robot drives into the slot.
+geometry_msgs/PoseStamped slot_pose
+bool retreat                  # true: reverse out after lowering
+# RFID tag expected under the robot at the slot centre, checked before lowering. Empty = do not check.
+string expected_tag
+---
+bool success
+string message
+float32 position_error        # m, distance of the robot (= rack) centre from the slot centre when lowered
+float32 heading_error         # rad
+---
+string state                  # CHECKING_SLOT, APPROACHING, CHECKING_RFID, LOWERING, RETREATING
+float32 distance_to_go        # m
